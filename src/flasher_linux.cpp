@@ -81,6 +81,7 @@ int generic_flasher::flash_device(const std::string& device, const std::string& 
     int iso_fd = open(file.c_str(), O_RDONLY);
     if (iso_fd < 0) {
         std::cout << "Failed to open file!\n";
+        progressCb(100);
         return FLASH_ERROR_ISO_NOT_FOUND;
     }
     int usb_fd = open(std::string("/dev/" + device).c_str(), O_WRONLY);
@@ -89,6 +90,7 @@ int generic_flasher::flash_device(const std::string& device, const std::string& 
         std::cout << "Failed to find usb device!\n";
         std::cout << "USB device in question: " << "/dev/" + device << std::endl;
         printf("errno = %d (%s)\n", errno, strerror(errno));
+        progressCb(100);
         return FLASH_ERROR_DEVICE_NOT_FOUND;
     }
 
@@ -100,6 +102,7 @@ int generic_flasher::flash_device(const std::string& device, const std::string& 
         ssize_t bytes_read = read(iso_fd, read_buffer, BUFFER_SIZE);
         if (bytes_read < 0) {
             std::cout << "Error while reading ISO file";
+            progressCb(100);
             return FLASH_ERROR_ISO_NOT_READING;
         }
         if (bytes_read == 0) {
@@ -109,12 +112,14 @@ int generic_flasher::flash_device(const std::string& device, const std::string& 
         ssize_t bytes_written = write(usb_fd, read_buffer, bytes_read);
         if (bytes_written != bytes_read) {
             std::cout << "Error writing to USB device!\n";
+            progressCb(100);
             return FLASH_ERROR_USB_NOT_WRITING;
         }
         written = written + bytes_written;
         int percent = (written * 100) / total;
 
         if (progressCb) {
+            if(percent >= 100) percent = 99;
             progressCb(percent);
         }
     }
@@ -123,6 +128,8 @@ int generic_flasher::flash_device(const std::string& device, const std::string& 
 
     close(iso_fd);
     close(usb_fd);
+
+    progressCb(100);
 
     printf("ISO successfully written to device!\n");
 

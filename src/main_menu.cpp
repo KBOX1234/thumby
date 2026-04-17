@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <wx/log.h>
+#include <wx/msgdlg.h>
 #include <wx/wx.h>
 #include <thread>
 
@@ -102,10 +103,13 @@ void main_frame::burn_bt(wxCommandEvent& event){
     if (result == wxID_YES) {
         std::thread([this, dev]() {
 
-            flash_master.flash_device(dev.ToStdString(), state_master.get_file_path());
+            int status = flash_master.flash_device(dev.ToStdString(), state_master.get_file_path());
 
-            wxTheApp->CallAfter([this]() {
-                wxMessageBox("Flashing complete!");
+            wxTheApp->CallAfter([this, status]() {
+                if(status == FLASH_ERROR_NON) wxMessageBox("Flashing complete!");
+                else{
+                    wxMessageBox("Flashing failed with code: " + std::to_string(status) + "\nMabey try running as Admin?");
+                }
             });
 
         }).detach();
